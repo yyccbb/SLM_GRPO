@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.json import JSON
 import json
+import config
 
 from torch.nn.utils.rnn import pad_sequence
 
@@ -24,11 +25,7 @@ def pprint(content, title=None, is_json=False, **kwargs):
         content = Panel(content, title=title)
     console.print(content, **kwargs)
 
-batch_size = 2
-n_rollouts = 2
-max_new_tokens = 100
-
-system_prompt = """
+SYSTEM_PROMPT = """
 A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
 The assistant first thinks about the reasoning process in the mind and then provides the user
 with the answer. The reasoning process and answer are enclosed within <think> </think> and
@@ -70,12 +67,14 @@ def load_tokenizer(model_name):
     tokenizer.pad_token = tokenizer.eos_token
     return tokenizer
 
-def get_data_loader(env, tokenizer):
-    dataloader = get_dataloader(
-        env,
-        system_prompt=system_prompt,
-        tokenizer=tokenizer,
-        batch_size=batch_size,
+def get_dataloader(env, tokenizer):
+    dataset = ReasoningDataset(
+        env, tokenizer, SYSTEM_PROMPT
+    )
+    dataloader = DataLoader(
+        dataset=dataset,
+        batch_size=config.BATCH_SIZE,
+        collate_fn=lambda batch: collate_fn(batch, tokenizer.eos_token_id),
     )
     return dataloader
 
@@ -142,20 +141,3 @@ def collate_fn(batch, pad_token_id):
             )
         }
     }
-
-
-def get_dataloader(
-    dataset,
-    tokenizer,
-    batch_size=batch_size,
-    system_prompt=system_prompt
-):
-    dataset = ReasoningDataset(
-        dataset, tokenizer, system_prompt
-    )
-    dataloader = DataLoader(
-        dataset=dataset,
-        batch_size=batch_size,
-        collate_fn=lambda batch: collate_fn(batch, tokenizer.eos_token_id),
-    )
-    return dataloader

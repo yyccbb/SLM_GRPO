@@ -1,5 +1,5 @@
+import re
 from transformers import AutoTokenizer
-from rich import print
 
 def generate_model_response(model, tokenizer, messages):
     chat_template = tokenizer.apply_chat_template(
@@ -7,11 +7,11 @@ def generate_model_response(model, tokenizer, messages):
         tokenize=False,
         add_generation_prompt=True
     )
-    print(f"[bold green]{chat_template}[/bold green]")
+    # print(f"{chat_template}")
 
     # tokenize
     inputs = tokenizer(chat_template, return_tensors="pt")
-    print(f"Input ids shape: {inputs['input_ids'].shape}, first 10 tokens: {inputs['input_ids'][:, :10]}")
+    # print(f"Input ids shape: {inputs['input_ids'].shape}, first 10 tokens: {inputs['input_ids'][:, :10]}")
 
     # generate response
     outputs = model.generate(**inputs, max_new_tokens=512)

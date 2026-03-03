@@ -4,7 +4,7 @@ import torch
 import grpo_utils
 from accelerate import Accelerator
 from config import *
-from utils import load_model, load_tokenizer, get_data_loader
+from utils import load_model, load_tokenizer, get_dataloader
 from rollout import collect_rollouts
 from buffer import build_experience, collate_experience
 
@@ -49,7 +49,7 @@ def main():
 
     llm = load_model(MODEL_NAME)
     tokenizer = load_tokenizer(MODEL_NAME)
-    dataloader = get_data_loader("syllogism", tokenizer)
+    dataloader = get_dataloader("syllogism", tokenizer)
     optimizer = torch.optim.Adam(llm.parameters(), lr=LR)
 
     llm, dataloader, optimizer = accelerator.prepare(
