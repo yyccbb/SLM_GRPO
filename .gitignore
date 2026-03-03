@@ -4,4 +4,8 @@ __pycache__/
 
 sft/outputs/
 
+outputs
+
+*.ipynb
+
 .env

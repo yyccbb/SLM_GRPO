@@ -1,0 +1,11 @@
+MODEL_NAME = "./sft/outputs/checkpoint-1000"
+
+BATCH_SIZE = 16
+N_ROLLOUTS = 3
+BUFFER_SIZE = 48
+MAX_NEW_TOKENS = 256
+LR = 1e-5
+EPS = 1e-8
+
+NUM_EPOCHS = 2
+STEPS_PER_EPOCH = 100

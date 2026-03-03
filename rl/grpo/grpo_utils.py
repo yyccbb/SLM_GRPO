@@ -7,13 +7,13 @@ FORMAT_REWARD_WEIGHT = 0.15
 CORRECTNESS_REWARD_WEIGHT = 0.85
 MAX_TOKENS = 500 # used for dr_grpo loss
 
-def calculate_logits(llm, full_responses, attention_masks):
-    logits = llm(input_ids=full_responses, attention_masks=attention_masks).logits
-    log_probs = torch.log_softmax(logits, dim=-1)
+def calculate_logits(llm, full_response, attention_mask):
+    logits = llm(input_ids=full_response, attention_mask=attention_mask).logits # (B, L, V)
+    log_probs = torch.log_softmax(logits, dim=-1) # (B, L, V)
 
     selected_log_probs = torch.gather(
-        input=log_probs, dim=2, index=full_responses.unsqueeze(-1)
-    ).squeeze(-1)
+        input=log_probs, dim=2, index=full_response.unsqueeze(-1)
+    ).squeeze(-1) # Same shape as the index vector, so (B, L)
 
     return selected_log_probs
 
