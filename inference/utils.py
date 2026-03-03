@@ -20,3 +20,9 @@ def generate_model_response(model, tokenizer, messages):
 
     decoded_output = tokenizer.batch_decode(generated_tokens)[0]
     return decoded_output
+
+def extract_answer(response: str):
+    answer = re.search(r"<answer>(.*?)</answer>", response, re.DOTALL)
+    if answer:
+        return answer.group(1)
+    return answer
