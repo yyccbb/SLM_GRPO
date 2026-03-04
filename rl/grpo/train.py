@@ -118,7 +118,7 @@ def main():
                 break
 
             # ===== Rollout =====
-            full_response, log_probs, advantages = collect_rollouts(
+            full_response, log_probs, advantages, rewards = collect_rollouts(
                 llm,
                 tokenizer,
                 batch,
@@ -154,10 +154,12 @@ def main():
             )
 
             if accelerator.is_main_process:
-                print(f"Step {global_step} | Loss: {loss:.4f}")
+                mean_reward = rewards.mean()
+                print(f"Step {global_step} | Mean reward: {mean_reward} | Loss: {loss:.4f}")
                 wandb.log({
                     "loss": loss, 
-                    "mean_advantage": advantage.mean().item()
+                    "mean_advantage": advantage.mean().item(),
+                    "mean_reward": mean_reward
                 }, step=global_step)
 
             global_step += 1

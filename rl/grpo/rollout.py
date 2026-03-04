@@ -55,4 +55,4 @@ def collect_rollouts(
             device=llm.device
         ) # (B * n_rollouts, )
 
-    return full_response, log_probs, advantages
+    return full_response, log_probs, advantages, rewards
