@@ -9,7 +9,6 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.json import JSON
 import json
-import config
 
 from torch.nn.utils.rnn import pad_sequence
 
@@ -67,13 +66,13 @@ def load_tokenizer(model_name):
     tokenizer.pad_token = tokenizer.eos_token
     return tokenizer
 
-def get_dataloader(env, tokenizer):
+def get_dataloader(env, tokenizer, batch_size):
     dataset = ReasoningDataset(
         env, tokenizer, SYSTEM_PROMPT
     )
     dataloader = DataLoader(
         dataset=dataset,
-        batch_size=config.BATCH_SIZE,
+        batch_size=batch_size,
         collate_fn=lambda batch: collate_fn(batch, tokenizer.eos_token_id),
     )
     return dataloader

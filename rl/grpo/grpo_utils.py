@@ -100,9 +100,9 @@ def calculate_grpo_loss(
     loss_implementation="grpo"
 ):
 
-    importance_sampling_ratio = torch.exp(log_probs - old_log_probs)
+    importance_sampling_ratio = torch.exp(log_probs - old_log_probs) # (B, L)
 
-    clipped = importance_sampling_ratio * advantages
+    clipped = importance_sampling_ratio * advantages # (B, L) * (B, 1) -> (B, L)
     unclipped = torch.clamp(
         importance_sampling_ratio, 1 - clip_epsilon, 1 + clip_epsilon
     ) * advantages

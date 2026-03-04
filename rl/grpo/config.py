@@ -1,9 +1,8 @@
-MODEL_NAME = "./sft/outputs/checkpoint-1000"
+MODEL_NAME = "./outputs/sft/checkpoint-600"
 
 BATCH_SIZE = 16
 N_ROLLOUTS = 3
-BUFFER_SIZE = 48
-MAX_NEW_TOKENS = 256
+MAX_NEW_TOKENS = 512
 LR = 1e-5
 EPS = 1e-8
 

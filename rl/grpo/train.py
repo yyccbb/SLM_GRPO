@@ -1,14 +1,58 @@
 import os
 import debugpy
 import torch
+import wandb
+import time
 import grpo_utils
+import argparse
 from accelerate import Accelerator
+from transformers.utils import logging
 from config import *
 from utils import load_model, load_tokenizer, get_dataloader
 from rollout import collect_rollouts
 from buffer import build_experience, collate_experience
 
-ENABLE_DEBUGPY = True
+ENABLE_DEBUGPY = False
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="GRPO Training")
+
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        default=MODEL_NAME,
+        help="Path or name of model checkpoint"
+    )
+
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=BATCH_SIZE,
+        help="Prompt batch size"
+    )
+
+    parser.add_argument(
+        "--n_rollouts",
+        type=int,
+        default=N_ROLLOUTS,
+        help="Number of sampled responses per prompt"
+    )
+
+    parser.add_argument(
+        "--num_epochs",
+        type=int,
+        default=NUM_EPOCHS,
+        help="Number of training epochs"
+    )
+
+    parser.add_argument(
+        "--steps_per_epoch",
+        type=int,
+        default=STEPS_PER_EPOCH,
+        help="Training steps per epoch"
+    )
+
+    return parser.parse_args()
 
 def grpo_step(
     llm,
@@ -40,28 +84,35 @@ def grpo_step(
     return loss.item()
 
 def main():
+    args = parse_args()
     if ENABLE_DEBUGPY:
         debugpy.listen(("0.0.0.0", 5678))
         print(f"Debugger listening on {os.uname()[1]}:5678. Waiting for attach…")
         debugpy.wait_for_client()
 
     accelerator = Accelerator()
+    
+    if accelerator.is_main_process:
+        wandb.init(project="slm-grpo", name="grpo-training")
 
-    llm = load_model(MODEL_NAME)
-    tokenizer = load_tokenizer(MODEL_NAME)
-    dataloader = get_dataloader("syllogism", tokenizer)
+    llm = load_model(args.model_name)
+    tokenizer = load_tokenizer(args.model_name)
+    dataloader = get_dataloader("syllogism", tokenizer, args.batch_size)
+    accelerator.print(f"Dataset length: {len(dataloader.dataset)}")
     optimizer = torch.optim.Adam(llm.parameters(), lr=LR)
 
     llm, dataloader, optimizer = accelerator.prepare(
         llm, dataloader, optimizer
     )
 
-    for epoch in range(NUM_EPOCHS):
+    global_step = 0
+
+    for epoch in range(args.num_epochs):
         print(f"Epoch {epoch}")
 
         for step, batch in enumerate(dataloader):
 
-            if step >= STEPS_PER_EPOCH:
+            if step >= args.steps_per_epoch:
                 break
 
             # ===== Rollout =====
@@ -69,7 +120,7 @@ def main():
                 llm,
                 tokenizer,
                 batch,
-                N_ROLLOUTS,
+                args.n_rollouts,
                 MAX_NEW_TOKENS
             )
 
@@ -101,10 +152,19 @@ def main():
             )
 
             if accelerator.is_main_process:
-                print(f"Step {step} | Loss: {loss:.4f}")
+                print(f"Step {global_step} | Loss: {loss:.4f}")
+                wandb.log({
+                    "loss": loss, 
+                    "mean_advantage": advantage.mean().item()
+                }, step=global_step)
+
+            global_step += 1
+
+    if accelerator.is_main_process:
+        wandb.finish()
 
     accelerator.wait_for_everyone()
-    accelerator.save_model(llm, "./outputs/grpo")
+    accelerator.save_model(llm, f"./outputs/grpo_{global_step}_{time.strftime('%m%d_%H%M')}")
 
 if __name__ == "__main__":
     main()
