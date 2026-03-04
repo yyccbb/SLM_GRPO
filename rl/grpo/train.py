@@ -91,9 +91,11 @@ def main():
         debugpy.wait_for_client()
 
     accelerator = Accelerator()
+
+    run_name = f"grpo_bs{args.batch_size}_roll{args.n_rollouts}_ckpt{args.model_name.split('-')[-1]}"
     
     if accelerator.is_main_process:
-        wandb.init(project="slm-grpo", name="grpo-training")
+        wandb.init(project="slm-grpo", name=run_name, config=vars(args))
 
     llm = load_model(args.model_name)
     tokenizer = load_tokenizer(args.model_name)
@@ -108,7 +110,7 @@ def main():
     global_step = 0
 
     for epoch in range(args.num_epochs):
-        print(f"Epoch {epoch}")
+        accelerator.print(f"Epoch {epoch}")
 
         for step, batch in enumerate(dataloader):
 
@@ -164,7 +166,14 @@ def main():
         wandb.finish()
 
     accelerator.wait_for_everyone()
-    accelerator.save_model(llm, f"./outputs/grpo_{global_step}_{time.strftime('%m%d_%H%M')}")
 
+    if accelerator.is_main_process:
+        save_dir = f"./outputs/grpo/{run_name}"
+        model_to_save = accelerator.unwrap_model(llm)
+        model_to_save.save_pretrained(
+            save_dir,
+            safe_serialization=True
+        )
+        tokenizer.save_pretrained(save_dir)
 if __name__ == "__main__":
     main()
